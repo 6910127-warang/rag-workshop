@@ -2,262 +2,202 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+Thai:wght@400;500;600&display=swap">
 <style>
-/* Layout: sticky stage-nav on top, then one scroll of five working panels; playground is a 2-column workbench that stacks on phones */
+/* Layout: full-height chat app. Left rail (topics + settings), centre conversation, right sources drawer. Rail and drawer become overlays on phones. */
 :root{
   --bg:#eef1f4; --surface:#ffffff; --surface2:#e4e9ee; --ink:#14202b; --muted:#566574; --line:#cfd7de;
   --accent:#0f766e; --accent-ink:#ffffff; --accent-soft:#d3efec;
+  --user:#14202b; --user-ink:#ffffff;
   --warn:#b45309; --warn-soft:#fbe9d2; --bad:#b42318; --bad-soft:#fbdcd8; --good:#157f3b; --good-soft:#d6f0de;
+  --shadow:0 8px 28px rgba(20,32,43,.16);
   --f-display:"Bai Jamjuree","Noto Sans Thai",system-ui,sans-serif;
   --f-body:"Noto Sans Thai",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0e161d; --surface:#16212b; --surface2:#1f2d39; --ink:#e6edf3; --muted:#9aabb9; --line:#2a3a48;
-  --accent:#3cc4b7; --accent-ink:#06201d; --accent-soft:#12403c;
-  --warn:#f0a35a; --warn-soft:#3b2a15; --bad:#ff8a7d; --bad-soft:#40201c; --good:#5fd488; --good-soft:#163a24; color-scheme:dark}}
+  --accent:#3cc4b7; --accent-ink:#06201d; --accent-soft:#12403c; --user:#2b4a5c; --user-ink:#f2f8fb;
+  --warn:#f0a35a; --warn-soft:#3b2a15; --bad:#ff8a7d; --bad-soft:#40201c; --good:#5fd488; --good-soft:#163a24;
+  --shadow:0 8px 28px rgba(0,0,0,.5); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0e161d; --surface:#16212b; --surface2:#1f2d39; --ink:#e6edf3; --muted:#9aabb9; --line:#2a3a48;
-  --accent:#3cc4b7; --accent-ink:#06201d; --accent-soft:#12403c;
-  --warn:#f0a35a; --warn-soft:#3b2a15; --bad:#ff8a7d; --bad-soft:#40201c; --good:#5fd488; --good-soft:#163a24; color-scheme:dark}
+  --accent:#3cc4b7; --accent-ink:#06201d; --accent-soft:#12403c; --user:#2b4a5c; --user-ink:#f2f8fb;
+  --warn:#f0a35a; --warn-soft:#3b2a15; --bad:#ff8a7d; --bad-soft:#40201c; --good:#5fd488; --good-soft:#163a24;
+  --shadow:0 8px 28px rgba(0,0,0,.5); color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font:400 15px/1.65 var(--f-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--surface);z-index:10}
-.wrap{max-width:1080px;margin:0 auto}
-h1,h2,h3{font-family:var(--f-display);line-height:1.25;text-wrap:balance;margin:0}
-h1{font-size:clamp(28px,5vw,44px);font-weight:700}
-h2{font-size:clamp(21px,3vw,27px);font-weight:600}
-h3{font-size:16px;font-weight:600}
-p{margin:0}
-code,.mono{font-family:var(--f-mono);font-size:.86em}
-button,input,select{font:inherit;color:inherit}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.65 var(--f-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0;overflow:hidden}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{font-family:var(--f-display);line-height:1.25;text-wrap:balance}
+button,input,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--surface);border-bottom:1px solid var(--line);margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-inline:max(16px,env(safe-area-inset-left,0px))}
-.topbar .wrap{display:flex;align-items:center;gap:12px;height:52px}
-.brand{font-family:var(--f-display);font-weight:700;white-space:nowrap}
-.brand span{color:var(--accent)}
-nav{display:flex;gap:4px;overflow-x:auto;flex:1;scrollbar-width:none;min-width:0}
-nav a{padding:6px 12px;border-radius:99px;color:var(--muted);text-decoration:none;white-space:nowrap;font-size:14px;font-weight:500}
-nav a:hover,nav a.on{background:var(--accent-soft);color:var(--ink)}
-.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:13px}
-.iconbtn:hover{background:var(--surface2)}
-section{padding-block:44px 8px;scroll-margin-top:60px}
-.sec-head{display:grid;gap:6px;margin-bottom:20px}
-.sec-head p{color:var(--muted);max-width:68ch}
-.eyebrow{font:500 12px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
-.hero{padding-block:36px 8px;display:grid;gap:14px}
-.hero p{color:var(--muted);max-width:62ch;font-size:16px}
-.hero .cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
-.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 16px;font-weight:500;text-decoration:none;color:var(--ink);display:inline-block}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-.btn:hover{filter:brightness(1.06)}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
-/* pipeline */
-.stages{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
-.stage{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px;text-align:left;display:grid;gap:4px;min-width:0;position:relative}
-.stage .n{font:500 11px var(--f-mono);color:var(--muted)}
-.stage b{font-family:var(--f-display);font-size:15px}
-.stage small{color:var(--muted);font-size:12px;line-height:1.35}
-.stage[aria-selected="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent)}
-.stage:hover{border-color:var(--accent)}
-.stage-detail{display:grid;grid-template-columns:1.1fr 1fr;gap:20px}
-.stage-detail>*{min-width:0}
-.io{display:grid;gap:10px}
-.io div{background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:13px}
-.io label{display:block;font:500 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
-pre{margin:0;background:var(--surface2);border-radius:8px;padding:12px;overflow-x:auto;font:400 12.5px/1.6 var(--f-mono)}
-.tag{display:inline-block;font:500 11px var(--f-mono);padding:2px 8px;border-radius:99px;background:var(--surface2);color:var(--muted)}
-.tag.active{background:var(--good-soft);color:var(--good)}
-.tag.sup{background:var(--warn-soft);color:var(--warn)}
-.tag.inj{background:var(--bad-soft);color:var(--bad)}
-/* workbench */
-.bench{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
-.bench>*{min-width:0}
-.controls{display:grid;gap:16px;position:sticky;top:64px}
-.field{display:grid;gap:6px}
-.field>label,.field>span.l{font:500 12px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
-.qrow{display:flex;gap:6px}
-input[type=text]{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:9px 12px}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 12px;font-size:13px}
-.chip:hover{border-color:var(--accent);background:var(--accent-soft)}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+.app{height:100%;max-width:1320px;margin:0 auto;display:grid;grid-template-columns:272px minmax(0,1fr) 0;border-inline:1px solid var(--line);background:var(--bg);transition:grid-template-columns .25s}
+.app.src-open{grid-template-columns:272px minmax(0,1fr) 340px}
+.app>*{min-height:0;min-width:0}
+/* rail */
+.rail{background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto}
+.rail-head{padding:16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+.logo{width:36px;height:36px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 16px var(--f-display);flex:none}
+.rail-head b{display:block;font-family:var(--f-display);line-height:1.2}
+.rail-head small{color:var(--muted);font-size:12px}
+.rail-sec{padding:14px 16px;display:grid;gap:8px;border-bottom:1px solid var(--line)}
+.lab{font:500 11px var(--f-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.topic{display:grid;gap:2px}
+.topic button{text-align:left;border:0;background:none;border-radius:8px;padding:7px 10px;font-size:14px;color:var(--ink)}
+.topic button:hover{background:var(--accent-soft)}
+.newchat{margin:12px 16px 0;border:1px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:9px 12px;font-weight:600;text-align:left}
+.newchat:hover{background:var(--accent);color:var(--accent-ink)}
 .seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
-.seg button{border:0;background:var(--surface);padding:8px;font-weight:500}
+.seg button{border:0;background:var(--surface);padding:7px;font-weight:500;font-size:13px}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 input[type=range]{width:100%;accent-color:var(--accent)}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .switch{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer}
 .switch input{width:18px;height:18px;accent-color:var(--accent)}
-.results{display:grid;gap:12px}
-.rhead{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline}
-.rhead .mono{color:var(--muted)}
-.chunk{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:8px;cursor:pointer;text-align:left;width:100%}
-.chunk:hover{border-color:var(--accent)}
-.chunk[aria-expanded="true"]{border-color:var(--accent)}
-.chunk.out{opacity:.55}
-.ctop{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.cid{font:500 13px var(--f-mono);color:var(--accent)}
-.rank{font:600 12px var(--f-mono);background:var(--ink);color:var(--bg);border-radius:6px;padding:1px 7px}
-.bar{height:6px;background:var(--surface2);border-radius:9px;overflow:hidden;flex:1;min-width:60px}
-.bar i{display:block;height:100%;background:var(--accent);border-radius:9px;transition:width .35s}
-.ctext{font-size:14px;color:var(--ink)}
-.ctext mark{background:var(--accent-soft);color:inherit;border-radius:3px;padding:0 1px}
-.cmore{font-size:13px;color:var(--muted);display:none;border-top:1px dashed var(--line);padding-top:8px}
-.chunk[aria-expanded="true"] .cmore{display:block}
-.note{font-size:13px;border-radius:8px;padding:10px 12px}
-.note.warn{background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn)}
+.rail-foot{margin-top:auto;padding:14px 16px;font-size:12px;color:var(--muted)}
+/* main */
+.main{display:flex;flex-direction:column;min-width:0;position:relative}
+.bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar h1{font-size:16px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar h1 small{font:400 12px var(--f-body);color:var(--muted);margin-left:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--good);display:inline-block;margin-right:6px}
+.ib{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:13px;white-space:nowrap}
+.ib:hover{background:var(--surface2)}
+.menu-btn{display:none}
+.thread{flex:1;overflow-y:auto;padding:20px 16px 12px;scroll-behavior:smooth}
+.thread-in{max-width:760px;margin:0 auto;display:grid;gap:18px}
+.welcome{display:grid;gap:14px;justify-items:start;padding-top:8px}
+.welcome h2{font-size:clamp(22px,4vw,30px)}
+.welcome p{color:var(--muted);max-width:56ch}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:100%}
+.card{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;text-align:left;display:grid;gap:2px}
+.card:hover{border-color:var(--accent);background:var(--accent-soft)}
+.card b{font-size:14px}
+.card span{font-size:12px;color:var(--muted)}
+.msg{display:flex;gap:10px;max-width:100%}
+.msg.user{justify-content:flex-end}
+.av{width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font:700 13px var(--f-display);flex:none;margin-top:2px}
+.bub{min-width:0;max-width:min(640px,100%);display:grid;gap:8px}
+.msg.user .bub{background:var(--user);color:var(--user-ink);padding:9px 14px;border-radius:16px 16px 4px 16px}
+.msg.bot .bub>.txt{background:var(--surface);border:1px solid var(--line);padding:12px 14px;border-radius:4px 16px 16px 16px;display:grid;gap:8px;overflow-wrap:anywhere}
+.cite{font:500 12px var(--f-mono);background:var(--accent-soft);color:var(--accent);border:1px solid transparent;border-radius:6px;padding:0 6px;margin-inline:2px}
+.cite:hover{border-color:var(--accent)}
+.note{font-size:13px;border-radius:8px;padding:8px 12px}
+.note.warn{background:var(--warn-soft);border-left:3px solid var(--warn)}
 .note.bad{background:var(--bad-soft);border-left:3px solid var(--bad)}
 .note.good{background:var(--good-soft);border-left:3px solid var(--good)}
-.answer{border:1px solid var(--accent);background:var(--surface);border-radius:12px;padding:16px;display:grid;gap:8px}
-.answer .cite{font:500 12px var(--f-mono);background:var(--accent-soft);padding:1px 6px;border-radius:5px;color:var(--accent)}
-.empty{color:var(--muted);text-align:center;padding:24px}
-/* eval */
-.eval-grid{display:grid;grid-template-columns:1fr 1.3fr;gap:16px}
-.eval-grid>*{min-width:0}
-.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.metric{background:var(--surface2);border-radius:10px;padding:12px}
-.metric b{display:block;font:600 26px var(--f-display);font-variant-numeric:tabular-nums}
-.metric span{font-size:12px;color:var(--muted)}
-.tbars{display:grid;gap:10px}
-.tb{display:grid;grid-template-columns:92px 1fr 48px;gap:10px;align-items:center;font-size:14px}
-.tb .bar{height:12px}
-.tb .bar i.low{background:var(--warn)}
-.tb .v{font:500 13px var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
-/* path */
-.path{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.wk{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:10px;align-content:start;min-width:0}
-.wk .prog{height:5px;background:var(--surface2);border-radius:9px;overflow:hidden}
-.wk .prog i{display:block;height:100%;background:var(--good);width:0;transition:width .3s}
-.wk label{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
-.wk input{margin-top:5px;accent-color:var(--accent)}
-.wk label:has(input:checked) span{color:var(--muted);text-decoration:line-through}
-.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0;margin:0;list-style:none}
-.rules li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px;min-width:0}
-.rules li b{display:block;font-family:var(--f-display);margin-bottom:2px}
-footer{margin-top:40px;color:var(--muted);font-size:13px}
-@media (max-width:900px){
-  .bench,.eval-grid,.stage-detail{grid-template-columns:1fr}
-  .controls{position:static}
-  .path{grid-template-columns:1fr 1fr}
-  .rules{grid-template-columns:1fr 1fr}
-  .stages{grid-template-columns:repeat(5,minmax(132px,1fr));overflow-x:auto;padding-bottom:6px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pill{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:3px 12px;font-size:13px}
+.pill:hover{border-color:var(--accent);background:var(--accent-soft)}
+.pill.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pill.mono{font-family:var(--f-mono);font-size:12px}
+.typing{display:flex;gap:4px;padding:14px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{opacity:.3;transform:none}30%{opacity:1;transform:translateY(-3px)}}
+.composer{padding:10px 16px max(14px,env(safe-area-inset-bottom,0px));background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.cbox{max-width:760px;margin:0 auto;display:flex;gap:8px;align-items:flex-end;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 14px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.cbox:focus-within{border-color:var(--accent)}
+.cbox textarea{flex:1;min-width:0;border:0;background:none;resize:none;max-height:140px;padding:6px 0;line-height:1.5;outline:none}
+.send{border:0;background:var(--accent);color:var(--accent-ink);border-radius:10px;width:40px;height:40px;font-weight:700;flex:none}
+.send:disabled{opacity:.4;cursor:default}
+.hint{max-width:760px;margin:6px auto 0;font-size:12px;color:var(--muted);text-align:center}
+/* sources drawer */
+.drawer{background:var(--surface);border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.drawer-in{width:340px;display:flex;flex-direction:column;min-height:0;height:100%}
+.dhead{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dlist{padding:12px;overflow-y:auto;display:grid;gap:10px;align-content:start}
+.chunk{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:6px;background:var(--bg)}
+.chunk.hl{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.chunk.out{opacity:.6}
+.ctop{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.rank{font:600 12px var(--f-mono);background:var(--ink);color:var(--bg);border-radius:6px;padding:0 7px}
+.cid{font:500 13px var(--f-mono);color:var(--accent)}
+.tag{font:500 11px var(--f-mono);padding:1px 8px;border-radius:99px;background:var(--surface2);color:var(--muted)}
+.tag.active{background:var(--good-soft);color:var(--good)}
+.tag.sup{background:var(--warn-soft);color:var(--warn)}
+.tag.inj{background:var(--bad-soft);color:var(--bad)}
+.meter{height:5px;background:var(--surface2);border-radius:9px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);transition:width .35s}
+.ctext{font-size:13px;color:var(--ink)}
+.ctext mark{background:var(--accent-soft);color:inherit;border-radius:3px}
+.scrim{display:none}
+.toast{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:6px 14px;border-radius:99px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+@media (max-width:1100px){
+  .app,.app.src-open{grid-template-columns:240px minmax(0,1fr)}
+  .drawer{position:fixed;z-index:30;right:0;top:0;bottom:0;width:min(360px,100%);box-shadow:var(--shadow);transform:translateX(100%);transition:transform .25s;padding-top:env(safe-area-inset-top,0px)}
+  .app.src-open .drawer{transform:none}
+  .drawer-in{width:100%}
 }
-@media (max-width:520px){
-  .path,.rules{grid-template-columns:1fr}
-  .brand small{display:none}
-  .tb{grid-template-columns:76px 1fr 44px}
-  .metrics{grid-template-columns:1fr 1fr}
+@media (max-width:760px){
+  .app,.app.src-open{grid-template-columns:minmax(0,1fr);border-inline:0}
+  .rail{position:fixed;z-index:31;left:0;top:0;bottom:0;width:min(300px,86%);transform:translateX(-100%);transition:transform .25s;box-shadow:var(--shadow);padding-top:env(safe-area-inset-top,0px)}
+  .app.rail-open .rail{transform:none}
+  .app.rail-open .scrim,.app.src-open .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:29}
+  .app.rail-open .scrim{z-index:30}
+  .menu-btn{display:inline-block}
+  .cards{grid-template-columns:1fr}
+  .bar h1 small{display:none}
+  .drawer{width:100%;top:auto;height:72%;border-left:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;transform:translateY(100%);padding-top:0}
+  .app.src-open .drawer{transform:none}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 </style>
 
-<div class="topbar"><div class="wrap">
-  <div class="brand">RAG<span>·</span>Studio <small class="mono" style="color:var(--muted)">นาวา ดิจิทัล</small></div>
-  <nav id="nav" aria-label="ส่วนของหน้า">
-    <a href="#pipeline">Pipeline</a><a href="#lab">ลองค้นคืน</a><a href="#eval">ผลประเมิน</a><a href="#path">เส้นทางเวิร์กช็อป</a><a href="#rules">กติกา</a>
-  </nav>
-  <button class="iconbtn" id="theme" aria-label="สลับธีมสว่าง/มืด">ธีม</button>
-</div></div>
-
-<div class="wrap">
-<header class="hero">
-  <span class="eyebrow">Workshop · ถามตอบระเบียบบริษัท</span>
-  <h1>ถามระเบียบบริษัท ได้คำตอบที่อ้างอิง chunk ได้</h1>
-  <p>แผงควบคุมนี้ออกแบบให้เห็นทุกขั้นของ RAG ที่ทำในเวิร์กช็อป: อ่านเอกสาร แบ่ง chunk ค้นคืน สร้างคำตอบ และวัดผล ปรับตัวเลือกแล้วดูผลทันที ข้อมูลในเดโมเป็นตัวอย่างจำลองจากโครงสร้างของ repo ไม่ใช่เอกสารจริง</p>
-  <div class="cta"><a class="btn primary" href="#lab">ลองค้นคืนเลย</a><a class="btn" href="#pipeline">ดูขั้นตอน</a></div>
-</header>
-
-<section id="pipeline">
-  <div class="sec-head"><span class="eyebrow">1 · สถาปัตยกรรม</span><h2>กดแต่ละขั้นเพื่อดู input, output และไฟล์ที่เกี่ยวข้อง</h2></div>
-  <div class="stages" id="stages" role="tablist" aria-label="ขั้นตอนของระบบ"></div>
-  <div class="panel stage-detail" id="stageDetail" role="tabpanel"></div>
-</section>
-
-<section id="lab">
-  <div class="sec-head"><span class="eyebrow">2 · ลองค้นคืน</span><h2>พิมพ์คำถาม เลือกวิธี แล้วดูว่า chunk ไหนถูกดึงมา</h2>
-    <p>เปรียบเทียบ TF-IDF กับ hybrid ได้ทันที เอกสารที่ถูกแทนที่ (superseded) จะถูกทำเครื่องหมายและไม่ถูกใช้ตอบ</p></div>
-  <div class="bench">
-    <div class="panel controls">
-      <div class="field"><label for="q">คำถาม</label>
-        <form class="qrow" id="qform"><input type="text" id="q" value="ลาพักร้อนได้กี่วัน" autocomplete="off"><button class="btn primary" type="submit">ค้นหา</button></form></div>
-      <div class="field"><span class="l">ตัวอย่างคำถาม</span><div class="chips" id="chips"></div></div>
-      <div class="field"><span class="l">วิธีค้นคืน</span>
-        <div class="seg" role="group" aria-label="วิธีค้นคืน"><button type="button" data-m="tfidf" aria-pressed="false">TF-IDF</button><button type="button" data-m="hybrid" aria-pressed="true">Hybrid</button></div></div>
-      <div class="field"><div class="row"><label for="k" class="l" style="font:500 12px var(--f-mono);text-transform:uppercase;color:var(--muted)">k (จำนวน chunk)</label><b class="mono" id="kv">4</b></div>
-        <input type="range" id="k" min="1" max="6" value="4"></div>
+<div class="app" id="app">
+  <aside class="rail" id="rail" aria-label="เมนูข้าง">
+    <div class="rail-head"><div class="logo">น</div><div><b>นาวา Assistant</b><small>ถามระเบียบบริษัท นาวา ดิจิทัล</small></div></div>
+    <button class="newchat" id="newchat" type="button">+ เริ่มคำถามใหม่</button>
+    <div class="rail-sec"><span class="lab">หัวข้อที่ถามบ่อย</span><div class="topic" id="topics"></div></div>
+    <div class="rail-sec"><span class="lab">การค้นคืน</span>
+      <div class="seg" role="group" aria-label="วิธีค้นคืน"><button type="button" data-m="tfidf" aria-pressed="false">TF-IDF</button><button type="button" data-m="hybrid" aria-pressed="true">Hybrid</button></div>
+      <div class="row"><label for="k" style="font-size:14px">ดึง chunk (k)</label><b class="mono" id="kv">4</b></div>
+      <input type="range" id="k" min="1" max="6" value="4">
       <label class="switch"><input type="checkbox" id="sup"> รวมเอกสาร superseded</label>
-      <div class="mono" style="color:var(--muted);font-size:12px" id="cmd"></div>
     </div>
-    <div class="results" id="results" aria-live="polite"></div>
-  </div>
-</section>
+    <div class="rail-foot">เดโมใช้ตัวอย่าง 9 chunk คำนวณในเบราว์เซอร์ ไม่ใช่เอกสารจริงและไม่เรียก API ใด ๆ คำตอบจริงสร้างโดย Claude Code ผ่าน skill /ask<br><br><button class="ib" id="theme" type="button">สลับธีม</button></div>
+  </aside>
 
-<section id="eval">
-  <div class="sec-head"><span class="eyebrow">3 · ผลประเมิน</span><h2>Hybrid บนชุด test: hit@4 = 0.923</h2>
-    <p>ตัวเลขจริงจาก <code>python -m rag.evaluate --split test --method hybrid -k 4</code> (13 คำถาม) ใช้ดูผลสุดท้ายเท่านั้น การปรับระบบให้ดูชุด dev ตามกติกาข้อ 3</p></div>
-  <div class="eval-grid">
-    <div class="panel"><div class="metrics" id="metrics"></div></div>
-    <div class="panel"><h3 style="margin-bottom:12px">hit@k แยกตามประเภทคำถาม</h3><div class="tbars" id="tbars"></div>
-      <div class="note warn" style="margin-top:14px" id="evalNote">กดแถวประเภทคำถามเพื่อดูคำอธิบาย</div></div>
-  </div>
-</section>
+  <main class="main" id="mainEl">
+    <div class="bar">
+      <button class="ib menu-btn" id="menu" type="button" aria-label="เปิดเมนู">เมนู</button>
+      <h1><span class="dot" aria-hidden="true"></span>นาวา Assistant<small>ตอบจากระเบียบที่ active พร้อมอ้างอิง</small></h1>
+      <button class="ib" id="srcbtn" type="button" aria-pressed="false">แหล่งอ้างอิง</button>
+    </div>
+    <div class="thread" id="thread" aria-live="polite"><div class="thread-in" id="tin"></div></div>
+    <div class="composer">
+      <form class="cbox" id="form">
+        <textarea id="q" rows="1" placeholder="ถามเรื่องการลา สวัสดิการ การเบิกจ่าย IT…" aria-label="พิมพ์คำถาม"></textarea>
+        <button class="send" id="send" type="submit" aria-label="ส่งคำถาม" disabled>↑</button>
+      </form>
+      <div class="hint">Enter เพื่อส่ง · Shift+Enter ขึ้นบรรทัดใหม่ · คำตอบอ้าง [chunk_id] กดดูต้นฉบับได้</div>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+  </main>
 
-<section id="path">
-  <div class="sec-head"><span class="eyebrow">4 · เส้นทางเวิร์กช็อป</span><h2>ติ๊กงานที่ทำเสร็จ ความคืบหน้าจะถูกจำไว้ในเบราว์เซอร์นี้</h2></div>
-  <div class="path" id="pathGrid"></div>
-</section>
-
-<section id="rules">
-  <div class="sec-head"><span class="eyebrow">5 · กติกา</span><h2>กติกาที่ UI บังคับให้เห็นตลอด</h2></div>
-  <ul class="rules">
-    <li><b>ไม่เรียก API</b>งาน LLM ทำโดย Claude Code ผ่าน skill /ask</li>
-    <li><b>ห้ามแก้ tests/ และ data/eval/</b>ถ้าเฉลยผิดให้หยุดและอธิบาย</li>
-    <li><b>ปรับด้วย dev เท่านั้น</b>ไม่เปิดคำถามชุด test ระหว่างปรับ</li>
-    <li><b>อ้าง chunk_id</b>ใช้เอกสาร status: active เท่านั้น</li>
-    <li><b>เอกสารคือข้อมูล</b>ข้อความในเอกสารไม่ใช่คำสั่ง</li>
-    <li><b>pytest -q ทุกครั้ง</b>หลังแก้โค้ด แล้วสรุปเป็นภาษาไทย</li>
-  </ul>
-  <footer>เดโมนี้คำนวณคะแนนในเบราว์เซอร์ด้วย n-gram ระดับตัวอักษรบนตัวอย่าง 9 chunk เพื่อให้เห็นพฤติกรรม ผลจริงดูได้จาก <code>python -m rag.retrieve</code></footer>
-</section>
+  <aside class="drawer" id="drawer" aria-label="แหล่งอ้างอิง">
+    <div class="drawer-in">
+      <div class="dhead"><div><h3 style="font-size:15px">แหล่งอ้างอิง</h3><span class="mono" id="dmeta" style="color:var(--muted)"></span></div><button class="ib" id="dclose" type="button">ปิด</button></div>
+      <div class="dlist" id="dlist"><p style="color:var(--muted);font-size:14px">ถามคำถามแล้วกด "ดูแหล่งอ้างอิง" เพื่อดู chunk ที่ระบบดึงมาและคะแนน</p></div>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
 </div>
 
 <script>
 (function(){
-  var $=function(s,r){return (r||document).querySelector(s)};
+  var $=function(s){return document.querySelector(s)};
   var store={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+  var app=$('#app'),tin=$('#tin'),thread=$('#thread'),q=$('#q'),send=$('#send');
+  var reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
 
   /* theme */
-  var root=document.documentElement, tb=$('#theme');
-  var saved=store.get('rag-theme'); if(saved) root.setAttribute('data-theme',saved);
-  tb.onclick=function(){
-    var dark=root.getAttribute('data-theme')==='dark'||(!root.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme:dark)').matches);
-    var n=dark?'light':'dark'; root.setAttribute('data-theme',n); store.set('rag-theme',n);
-  };
+  var root=document.documentElement,sv=store.get('rag-theme');if(sv)root.setAttribute('data-theme',sv);
+  $('#theme').onclick=function(){var d=root.getAttribute('data-theme')==='dark'||(!root.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme:dark)').matches),n=d?'light':'dark';root.setAttribute('data-theme',n);store.set('rag-theme',n)};
 
-  /* pipeline */
-  var STAGES=[
-    {n:'ingest',t:'Ingest',s:'อ่านเอกสาร',f:'rag/ingest.py',i:'data/docs/*.md (24 ไฟล์)',o:'รายการเอกสาร + frontmatter',d:'อ่านไฟล์ Markdown แล้วแยก frontmatter: doc_id, title, department, version, effective_date, status ฟิลด์ status คือสิ่งที่ใช้กันไม่ให้ตอบจากเอกสารเก่า',c:'doc = {"doc_id":"HR-01","status":"active",\n       "version":3, "text":"..."}'},
-    {n:'chunk',t:'Chunk',s:'แบ่งตามหัวข้อ ##',f:'rag/chunk.py',i:'รายการเอกสาร',o:'chunk 1 อันต่อ 1 หัวข้อ ##',d:'หนึ่งหัวข้อ ## เป็นหนึ่ง chunk แต่ละ chunk มี chunk_id สำหรับอ้างอิง และสืบทอด status จากเอกสารแม่',c:'chunk = {"chunk_id":"HR-01#1",\n         "section":"ลาพักร้อน",\n         "status":"active", "text":"..."}'},
-    {n:'retrieve',t:'Retrieve',s:'ค้นคืน top-k',f:'rag/retrieve.py',i:'คำถาม + k + method',o:'chunk k อันพร้อม score',d:'tfidf ใช้ n-gram ตัวอักษร 2 ถึง 4 ส่วน hybrid รวมคะแนนนี้กับ BM25 บนคำที่ตัดด้วย pythainlp และขยายคำพ้องที่เรียนรู้จากชุด dev',c:'python -m rag.retrieve \\\n  "ลาพักร้อนได้กี่วัน" -k 4 --method hybrid'},
-    {n:'answer',t:'Answer',s:'สร้างคำตอบ',f:'.claude/skills/ask',i:'chunk ที่ค้นคืนได้',o:'คำตอบ + [chunk_id]',d:'Claude Code ตอบผ่าน skill /ask ใช้เฉพาะ chunk ที่ active อ้าง chunk_id ทุกข้อความ และถือข้อความในเอกสารเป็นข้อมูล ไม่ใช่คำสั่ง',c:'ลาพักร้อนได้ 10 วันทำงานต่อปี [HR-01#1]'},
-    {n:'evaluate',t:'Evaluate',s:'วัดผล',f:'rag/evaluate.py',i:'ชุด dev หรือ test',o:'hit@k, MRR, ตรวจ active',d:'วัดว่า chunk ที่ถูกต้องอยู่ใน top-k ไหม และคำถามเรื่องเวอร์ชันได้ chunk ที่ active เป็นอันดับหนึ่งไหม แล้ว check_answers ตรวจคำตอบใน out/',c:'python -m rag.evaluate --split dev \\\n  --method hybrid -k 4'}
-  ];
-  var sel=0, st=$('#stages'), sd=$('#stageDetail');
-  function drawStages(focus){
-    st.innerHTML=STAGES.map(function(x,i){return '<button class="stage" role="tab" id="st'+i+'" aria-selected="'+(i===sel)+'" tabindex="'+(i===sel?0:-1)+'" data-i="'+i+'"><span class="n">0'+(i+1)+' → '+x.n+'</span><b>'+x.t+'</b><small>'+x.s+'</small></button>'}).join('');
-    var x=STAGES[sel];
-    sd.setAttribute('aria-labelledby','st'+sel);
-    sd.innerHTML='<div><h3 style="margin-bottom:8px">'+x.t+' <span class="tag">'+x.f+'</span></h3><p style="color:var(--muted)">'+x.d+'</p></div>'+
-      '<div class="io"><div><label>Input</label>'+x.i+'</div><div><label>Output</label>'+x.o+'</div><pre>'+x.c.replace(/</g,'&lt;')+'</pre></div>';
-    if(focus){var b=$('#st'+sel);if(b)b.focus()}
-  }
-  st.addEventListener('click',function(e){var b=e.target.closest('.stage');if(b){sel=+b.dataset.i;drawStages(false)}});
-  st.addEventListener('keydown',function(e){
-    if(e.key==='ArrowRight'||e.key==='ArrowLeft'){sel=(sel+(e.key==='ArrowRight'?1:STAGES.length-1))%STAGES.length;drawStages(true);e.preventDefault()}
-  });
-  drawStages(false);
-
-  /* sample corpus */
+  /* sample corpus (marked as example) */
   var CH=[
     {id:'HR-01#1',doc:'HR-01',title:'ระเบียบการลา',sec:'ลาพักร้อน',st:'active',v:3,text:'พนักงานที่ผ่านทดลองงานมีสิทธิ์ลาพักร้อน 10 วันทำงานต่อปี ต้องแจ้งหัวหน้างานล่วงหน้าอย่างน้อย 3 วันทำงาน'},
     {id:'HR-01-2024#1',doc:'HR-01-2024',title:'ระเบียบการลา (ฉบับ 2024)',sec:'ลาพักร้อน',st:'superseded',v:2,text:'พนักงานมีสิทธิ์ลาพักร้อน 6 วันทำงานต่อปี ต้องแจ้งล่วงหน้า 7 วัน'},
@@ -270,103 +210,129 @@ footer{margin-top:40px;color:var(--muted);font-size:13px}
     {id:'HR-03#1',doc:'HR-03',title:'การทำงานแบบไฮบริด',sec:'ทำงานจากที่บ้าน',st:'active',v:1,text:'ทำงานจากที่บ้านได้สัปดาห์ละไม่เกิน 2 วัน ต้องได้รับอนุมัติจากหัวหน้างานและเข้าประชุมออนไลน์ตามกำหนด'}
   ];
   var SYN={'อีวี':['รถยนต์ไฟฟ้า','ชาร์จ'],'วันหยุดพักผ่อน':['ลาพักร้อน'],'wfh':['ทำงานจากที่บ้าน'],'ค่าเดินทาง':['เบิกค่าเดินทาง']};
-  var QS=['ลาพักร้อนได้กี่วัน','จุดชาร์จอีวีอยู่ที่ไหน','เบิกค่าเดินทางต้องส่งใบเสร็จกี่วัน','ต้องเปลี่ยนรหัสผ่านบ่อยแค่ไหน','ตรวจสุขภาพประจำปีได้ไหม','ลาป่วยต้องมีใบรับรองแพทย์เมื่อไหร่'];
+  var TOPICS=[['การลา',['ลาพักร้อนได้กี่วัน','ลาป่วยต้องมีใบรับรองแพทย์เมื่อไหร่']],['การเงิน',['เบิกค่าเดินทางต้องส่งใบเสร็จกี่วัน']],['IT และอาคาร',['ต้องเปลี่ยนรหัสผ่านบ่อยแค่ไหน','จุดชาร์จอีวีอยู่ที่ไหน']],['สวัสดิการ',['ตรวจสุขภาพประจำปีได้ไหม','ทำงานจากที่บ้านได้กี่วัน']]];
+  var ALLQ=[].concat.apply([],TOPICS.map(function(t){return t[1]}));
 
+  /* retrieval */
   function grams(s,a,b){var o={};s=s.replace(/\s+/g,' ');for(var n=a;n<=b;n++)for(var i=0;i+n<=s.length;i++){var g=s.substr(i,n);o[g]=(o[g]||0)+1}return o}
-  var DOCS=CH.map(function(c){return grams(c.title+' '+c.sec+' '+c.text,2,4)});
-  var DF={};DOCS.forEach(function(d){for(var g in d)DF[g]=(DF[g]||0)+1});
+  var DOCS=CH.map(function(c){return grams(c.title+' '+c.sec+' '+c.text,2,4)}),DF={};
+  DOCS.forEach(function(d){for(var g in d)DF[g]=(DF[g]||0)+1});
   function vec(d){var v={},n=0;for(var g in d){var w=(1+Math.log(d[g]))*Math.log((CH.length+1)/((DF[g]||0)+1)+1);v[g]=w;n+=w*w}n=Math.sqrt(n)||1;for(g in v)v[g]/=n;return v}
   var DV=DOCS.map(vec);
   function cos(a,b){var s=0;for(var g in a)if(b[g])s+=a[g]*b[g];return s}
   function norm(x){var mn=Math.min.apply(null,x),mx=Math.max.apply(null,x),sp=mx-mn;return x.map(function(v){return sp>0?(v-mn)/sp:0})}
-  function expand(q){var ex=[];for(var k in SYN)if(q.toLowerCase().indexOf(k)>=0)ex=ex.concat(SYN[k]);return {q:ex.length?q+' '+ex.join(' '):q,ex:ex}}
-  function terms(q){return grams(q,3,4)}
-  function search(q,method,k,incSup){
-    var ex={q:q,ex:[]};
-    if(method==='hybrid')ex=expand(q);
-    var qv=vec(grams(ex.q,2,4));
-    var tf=DV.map(function(d){return cos(qv,d)});
-    var sc=tf;
+  function expand(t){var ex=[];for(var k in SYN)if(t.toLowerCase().indexOf(k)>=0)ex=ex.concat(SYN[k]);return {q:ex.length?t+' '+ex.join(' '):t,ex:ex}}
+  function search(text,method,k,inc){
+    var e={q:text,ex:[]};if(method==='hybrid')e=expand(text);
+    var qv=vec(grams(e.q,2,4)),tf=DV.map(function(d){return cos(qv,d)}),sc=tf;
     if(method==='hybrid'){
-      var qt=terms(ex.q),idf=function(g){return Math.log(CH.length/((DF[g]||0)+0.5))};
-      var bm=DOCS.map(function(d){var s=0;for(var g in qt)if(d[g])s+=idf(g)*d[g]/(d[g]+1.2);return s});
+      var qt=grams(e.q,3,4),bm=DOCS.map(function(d){var s=0;for(var g in qt)if(d[g])s+=Math.log(CH.length/((DF[g]||0)+.5))*d[g]/(d[g]+1.2);return s});
       var a=norm(tf),b=norm(bm);sc=a.map(function(v,i){return .5*v+.5*b[i]});
     }
     var mx=Math.max.apply(null,sc)||1;
-    var out=CH.map(function(c,i){return {c:c,s:sc[i],r:sc[i]/mx}}).filter(function(x){return incSup||x.c.st==='active'});
+    var out=CH.map(function(c,i){return {c:c,s:sc[i],r:sc[i]/mx}}).filter(function(x){return inc||x.c.st==='active'});
     out.sort(function(a,b){return b.s-a.s});
-    return {hits:out.slice(0,k),ex:ex.ex,q:ex.q};
+    return {hits:out.slice(0,k),ex:e.ex,q:e.q,raw:tf};
   }
 
-  /* lab UI */
-  var state={m:'hybrid',k:4,sup:false};
-  var qi=$('#q'),res=$('#results');
-  function esc(s){return s.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})}
-  function hl(text,q){
-    var t=esc(text),qg=Object.keys(grams(q,3,4)).sort(function(a,b){return b.length-a.length}).slice(0,60),mark=new Array(text.length).fill(false);
-    qg.forEach(function(g){var i=-1;while((i=text.indexOf(g,i+1))>=0)for(var j=i;j<i+g.length;j++)mark[j]=true});
-    var o='',on=false;for(var i=0;i<text.length;i++){var ch=esc(text[i]);if(mark[i]&&!on){o+='<mark>';on=true}if(!mark[i]&&on){o+='</mark>';on=false}o+=ch}
+  /* settings */
+  var S={m:'hybrid',k:4,sup:false};
+  document.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){S.m=b.dataset.m;document.querySelectorAll('.seg button').forEach(function(x){x.setAttribute('aria-pressed',x===b)});toast('ใช้วิธี '+(S.m==='hybrid'?'Hybrid':'TF-IDF')+' กับคำถามถัดไป')}});
+  $('#k').oninput=function(){S.k=+this.value;$('#kv').textContent=this.value};
+  $('#sup').onchange=function(){S.sup=this.checked;toast(S.sup?'รวมเอกสาร superseded ในการค้นคืน':'ใช้เฉพาะเอกสาร active')};
+  var tt;function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('on')},1800)}
+
+  /* helpers */
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function hl(text,qs){
+    var qg=Object.keys(grams(qs,3,4)).sort(function(a,b){return b.length-a.length}).slice(0,60),m=new Array(text.length).fill(false);
+    qg.forEach(function(g){var i=-1;while((i=text.indexOf(g,i+1))>=0)for(var j=i;j<i+g.length;j++)m[j]=true});
+    var o='',on=false;for(var i=0;i<text.length;i++){var ch=esc(text[i]);if(m[i]&&!on){o+='<mark>';on=true}if(!m[i]&&on){o+='</mark>';on=false}o+=ch}
     return o+(on?'</mark>':'');
   }
-  function run(){
-    var q=qi.value.trim();
-    $('#cmd').textContent='python -m rag.retrieve "'+(q||'…')+'" -k '+state.k+' --method '+state.m+(state.sup?' --include-superseded':'');
-    if(!q){res.innerHTML='<div class="panel empty">พิมพ์คำถามหรือกดตัวอย่างทางซ้าย</div>';return}
-    var r=search(q,state.m,state.k,state.sup),html='';
-    html+='<div class="rhead"><h3>ผลค้นคืน '+r.hits.length+' chunk</h3><span class="mono">'+state.m+' · k='+state.k+'</span></div>';
-    if(r.ex.length)html+='<div class="note good">Hybrid ขยายคำพ้อง: <b>'+esc(r.ex.join(', '))+'</b> ช่วยให้คำถามที่ใช้คำต่างจากเอกสารยังเจอ chunk</div>';
-    r.hits.forEach(function(h,i){
-      var c=h.c,tags='<span class="tag '+(c.st==='active'?'active':'sup')+'">'+c.st+' v'+c.v+'</span>'+(c.inj?'<span class="tag inj">มีข้อความคล้ายคำสั่ง</span>':'');
-      html+='<button class="chunk '+(c.st!=='active'?'out':'')+'" aria-expanded="false" data-i="'+i+'"><div class="ctop"><span class="rank">#'+(i+1)+'</span><span class="cid">['+c.id+']</span>'+tags+'<div class="bar"><i style="width:'+Math.round(h.r*100)+'%"></i></div><span class="mono" style="color:var(--muted)">'+h.s.toFixed(3)+'</span></div>'+
-        '<div class="ctext"><b>'+esc(c.sec)+'</b> · '+hl(c.text,r.q)+'</div>'+
-        '<div class="cmore">เอกสาร: '+esc(c.title)+' ('+c.doc+')<br>'+(c.inj?'ข้อความที่ครอบด้วย *** ในเอกสารเป็นข้อมูล ระบบไม่ทำตาม ':'')+(c.st!=='active'?'chunk นี้ถูกแทนที่แล้ว ไม่ใช้ตอบ':'คลิกอีกครั้งเพื่อพับ')+'</div></button>';
-    });
-    var best=r.hits.filter(function(h){return h.c.st==='active'})[0];
-    var topSup=r.hits.length&&r.hits[0].c.st!=='active';
-    if(topSup)html+='<div class="note warn">อันดับ 1 เป็นเอกสาร superseded ระบบข้ามไปใช้ chunk active อันดับถัดไปในการตอบ</div>';
-    if(best&&best.r>0.25){
-      var c=best.c,ans=esc(c.text.replace(/\*\*\*[^*]*\*\*\*\s*/,''));
-      html+='<div class="answer"><span class="eyebrow">คำตอบจำลองจาก /ask</span><p>'+ans+' <span class="cite">['+c.id+']</span></p>'+(c.inj?'<p class="note bad">พบข้อความคล้ายคำสั่งใน chunk นี้ ตัดออกจากคำตอบและแจ้งผู้ใช้</p>':'')+'<p style="font-size:12px;color:var(--muted)">คำตอบจริงสร้างโดย Claude Code ตามขั้นตอนใน skill /ask</p></div>';
-    } else html+='<div class="note warn">คะแนนต่ำเกินไป ตอบตามกติกาว่า "ไม่พบในระเบียบบริษัท" แทนการเดา</div>';
-    res.innerHTML=html;
+  function scroll(){thread.scrollTop=thread.scrollHeight}
+
+  /* conversation */
+  var runs=[],cur=-1,busy=false;
+  function welcome(){
+    tin.innerHTML='<div class="welcome"><div class="av" style="width:44px;height:44px;font-size:20px;border-radius:12px">น</div><h2>สวัสดีครับ ถามระเบียบ นาวา ดิจิทัล ได้เลย</h2><p>ผมตอบจากเอกสารระเบียบที่ยังใช้งานอยู่ (status: active) และอ้าง [chunk_id] ทุกครั้ง ถ้าไม่พบในเอกสาร ผมจะบอกตรง ๆ ไม่เดา</p><div class="cards" id="cards"></div></div>';
+    var picks=[['ลาพักร้อนได้กี่วัน','การลา · มีเอกสารเวอร์ชันเก่า'],['จุดชาร์จอีวีอยู่ที่ไหน','ใช้คำต่างจากเอกสาร ลอง Hybrid'],['เบิกค่าเดินทางต้องส่งใบเสร็จกี่วัน','การเงิน · เวอร์ชันล่าสุด'],['ตรวจสุขภาพประจำปีได้ไหม','เอกสารมีข้อความคล้ายคำสั่ง']];
+    $('#cards').innerHTML=picks.map(function(p){return '<button class="card" type="button" data-q="'+esc(p[0])+'"><b>'+esc(p[0])+'</b><span>'+esc(p[1])+'</span></button>'}).join('');
   }
-  res.addEventListener('click',function(e){var b=e.target.closest('.chunk');if(b)b.setAttribute('aria-expanded',b.getAttribute('aria-expanded')==='true'?'false':'true')});
-  $('#qform').addEventListener('submit',function(e){e.preventDefault();run()});
-  $('#chips').innerHTML=QS.map(function(q){return '<button class="chip" type="button">'+q+'</button>'}).join('');
-  $('#chips').addEventListener('click',function(e){var b=e.target.closest('.chip');if(b){qi.value=b.textContent;run()}});
-  document.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){state.m=b.dataset.m;document.querySelectorAll('.seg button').forEach(function(x){x.setAttribute('aria-pressed',x===b)});run()}});
-  $('#k').oninput=function(){state.k=+this.value;$('#kv').textContent=this.value;run()};
-  $('#sup').onchange=function(){state.sup=this.checked;run()};
-  run();
+  function addUser(t){var d=document.createElement('div');d.className='msg user';d.innerHTML='<div class="bub">'+esc(t)+'</div>';tin.appendChild(d);scroll()}
+  function addTyping(){var d=document.createElement('div');d.className='msg bot';d.innerHTML='<div class="av">น</div><div class="bub"><div class="txt typing" aria-label="กำลังค้นหา"><i></i><i></i><i></i></div></div>';tin.appendChild(d);scroll();return d}
 
-  /* eval */
-  var M=[['0.923','hit@1'],['0.923','hit@4'],['0.931','MRR'],['1.000','version: top-1 active']];
-  $('#metrics').innerHTML=M.map(function(m){return '<div class="metric"><b>'+m[0]+'</b><span>'+m[1]+'</span></div>'}).join('');
-  var T=[['direct',1,'ถามตรงกับถ้อยคำในเอกสาร'],['injection',1,'เอกสารมีข้อความคล้ายคำสั่ง ระบบยังค้นคืนถูกและไม่ทำตาม'],['multi',1,'คำถามที่ต้องใช้หลาย chunk'],['paraphrase',.5,'ถามด้วยคำต่างจากเอกสาร เป็นจุดอ่อนเดียวของชุด test ควรแก้ด้วยคำพ้องจากชุด dev ไม่ใช่จากชุด test'],['version',1,'ได้ chunk active เป็นอันดับหนึ่งเสมอ']];
-  $('#tbars').innerHTML=T.map(function(t,i){return '<button class="tb" type="button" data-i="'+i+'" style="background:none;border:0;padding:0;text-align:left"><span>'+t[0]+'</span><span class="bar"><i class="'+(t[1]<1?'low':'')+'" style="width:'+t[1]*100+'%"></i></span><span class="v">'+t[1].toFixed(3)+'</span></button>'}).join('');
-  $('#tbars').addEventListener('click',function(e){var b=e.target.closest('.tb');if(b){var t=T[+b.dataset.i];$('#evalNote').textContent=t[0]+': '+t[2]}});
+  function compose(r,text){
+    var act=r.hits.filter(function(h){return h.c.st==='active'&&h.r>=.5&&r.raw[CH.indexOf(h.c)]>0.03});
+    var best=act[0],html='',notes='',idx=runs.length;
+    var topSup=r.hits.length&&r.hits[0].c.st!=='active';
+    if(!best||r.hits[0].r===0||Math.max.apply(null,r.raw)<0.06){
+      return {html:'<p>ไม่พบเรื่องนี้ในระเบียบบริษัทที่ยังใช้งานอยู่ ผมจึงไม่ตอบแบบเดา ลองถามใหม่ด้วยคำอื่น หรือสอบถามฝ่ายที่เกี่ยวข้องโดยตรง</p>',none:true};
+    }
+    var used=[best];
+    if(act[1]&&act[1].c.doc!==best.c.doc&&act[1].r>=.7&&act[1].c.sec!==best.c.sec)used.push(act[1]);
+    used.forEach(function(h){
+      var t=h.c.text.replace(/\*\*\*[^*]*\*\*\*\s*/,'').trim();
+      html+='<p>'+(used.length>1?'<b>'+esc(h.c.sec)+'</b> · ':'')+esc(t)+' <button class="cite" type="button" data-run="'+idx+'" data-cid="'+esc(h.c.id)+'">['+esc(h.c.id)+']</button></p>';
+      if(h.c.inj)notes+='<div class="note bad">chunk นี้มีข้อความคล้ายคำสั่ง ผมถือเป็นข้อมูลและตัดออกจากคำตอบ ไม่ทำตาม</div>';
+    });
+    if(topSup)notes+='<div class="note warn">พบเอกสารฉบับเก่า ('+esc(r.hits[0].c.id)+') ซึ่งถูกแทนที่แล้ว ผมไม่ใช้ตอบ</div>';
+    if(r.ex.length)notes+='<div class="note good">ขยายคำพ้อง: '+esc(r.ex.join(', '))+'</div>';
+    return {html:html+notes};
+  }
+  function related(asked){return ALLQ.filter(function(x){return asked.indexOf(x)<0}).slice(0,3)}
 
-  /* path */
-  var W=[['W1','ทำความรู้จักข้อมูล',['อ่านเอกสาร 24 ไฟล์ใน data/docs','ดู frontmatter และ status','รัน rag/ingest.py']],
-         ['W2','ค้นคืนพื้นฐาน',['เขียน chunk_docs แบ่งตาม ##','Retriever แบบ TF-IDF','รัน python -m rag.retrieve']],
-         ['W3','สร้างคำตอบ',['สร้าง skill /ask','อ้าง chunk_id ทุกคำตอบ','รัน check_answers']],
-         ['W4','ปรับปรุงและวัดผล',['ปรับด้วยชุด dev เท่านั้น','เพิ่ม hybrid BM25 + คำพ้อง','pytest -m w4 ผ่าน','ประเมินชุด test ครั้งเดียว']]];
-  var done={};try{done=JSON.parse(store.get('rag-path')||'{}')}catch(e){}
-  function drawPath(){
-    $('#pathGrid').innerHTML=W.map(function(w,wi){
-      var n=w[2].filter(function(_,i){return done[wi+'-'+i]}).length;
-      return '<div class="wk"><div class="row"><span class="eyebrow">'+w[0]+'</span><span class="mono" style="color:var(--muted)">'+n+'/'+w[2].length+'</span></div><h3>'+w[1]+'</h3><div class="prog"><i style="width:'+(n/w[2].length*100)+'%"></i></div>'+
-      w[2].map(function(t,i){var id='p'+wi+'-'+i;return '<label for="'+id+'"><input type="checkbox" id="'+id+'" data-k="'+wi+'-'+i+'"'+(done[wi+'-'+i]?' checked':'')+'><span>'+t+'</span></label>'}).join('')+'</div>';
+  function ask(text){
+    text=text.trim();if(!text||busy)return;
+    busy=true;send.disabled=true;
+    if(cur<0||!runs.length||!$('.welcome'))if($('.welcome'))tin.innerHTML='';
+    addUser(text);q.value='';grow();
+    var ty=addTyping();
+    setTimeout(function(){
+      var r=search(text,S.m,S.k,S.sup),c=compose(r,text),idx=runs.length;
+      runs.push({q:text,r:r,m:S.m,k:S.k,none:!!c.none});
+      var asked=runs.map(function(x){return x.q});
+      var el=document.createElement('div');el.className='msg bot';
+      el.innerHTML='<div class="av">น</div><div class="bub"><div class="txt">'+c.html+'</div><div class="acts">'+
+        (c.none?'':'<button class="pill on mono" type="button" data-src="'+idx+'">ดูแหล่งอ้างอิง ('+r.hits.length+')</button>')+
+        '<button class="pill" type="button" data-fb="up" aria-label="คำตอบมีประโยชน์">👍</button><button class="pill" type="button" data-fb="down" aria-label="คำตอบไม่ดี">👎</button><button class="pill" type="button" data-copy="'+idx+'">คัดลอก</button></div>'+
+        '<div class="acts">'+related(asked).map(function(x){return '<button class="pill" type="button" data-q="'+esc(x)+'">'+esc(x)+'</button>'}).join('')+'</div></div>';
+      ty.replaceWith(el);scroll();busy=false;send.disabled=!q.value.trim();
+      cur=idx;fillDrawer(idx);
+    },reduce?0:650);
+  }
+
+  /* drawer */
+  function fillDrawer(idx,cid){
+    var run=runs[idx];if(!run)return;
+    $('#dmeta').textContent=run.m+' · k='+run.k;
+    $('#dlist').innerHTML='<p style="font-size:13px;color:var(--muted)">คำถาม: '+esc(run.q)+'</p>'+run.r.hits.map(function(h,i){
+      var c=h.c;return '<div class="chunk'+(c.id===cid?' hl':'')+(c.st!=='active'?' out':'')+'" id="ch-'+i+'"><div class="ctop"><span class="rank">#'+(i+1)+'</span><span class="cid">['+esc(c.id)+']</span><span class="tag '+(c.st==='active'?'active':'sup')+'">'+c.st+' v'+c.v+'</span>'+(c.inj?'<span class="tag inj">คล้ายคำสั่ง</span>':'')+'</div><div class="meter"><i style="width:'+Math.round(h.r*100)+'%"></i></div><div class="mono" style="color:var(--muted)">score '+h.s.toFixed(3)+'</div><div class="ctext"><b>'+esc(c.sec)+'</b> · '+hl(c.text,run.r.q)+'</div><div class="mono" style="color:var(--muted);font-size:11px">'+esc(c.title)+' · '+esc(c.doc)+'</div></div>';
     }).join('');
   }
-  $('#pathGrid').addEventListener('change',function(e){var k=e.target.dataset.k;if(k){done[k]=e.target.checked;store.set('rag-path',JSON.stringify(done));drawPath();var f=document.getElementById(e.target.id);if(f)f.focus()}});
-  drawPath();
+  function openSrc(open){app.classList.toggle('src-open',open);$('#srcbtn').setAttribute('aria-pressed',open)}
+  $('#srcbtn').onclick=function(){openSrc(!app.classList.contains('src-open'))};
+  $('#dclose').onclick=function(){openSrc(false)};
+  $('#scrim').onclick=function(){openSrc(false);app.classList.remove('rail-open')};
+  $('#menu').onclick=function(){app.classList.add('rail-open')};
 
-  /* nav highlight */
-  var links=[].slice.call(document.querySelectorAll('#nav a'));
-  if('IntersectionObserver' in window){
-    var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting)links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+en.target.id)})})},{rootMargin:'-30% 0px -60% 0px'});
-    document.querySelectorAll('section').forEach(function(s){io.observe(s)});
-  }
+  /* events */
+  tin.addEventListener('click',function(e){
+    var t=e.target.closest('button');if(!t)return;
+    if(t.dataset.q){ask(t.dataset.q);return}
+    if(t.dataset.src!==undefined){fillDrawer(+t.dataset.src);openSrc(true);return}
+    if(t.dataset.cid){fillDrawer(+t.dataset.run,t.dataset.cid);openSrc(true);var h=$('#dlist .hl');if(h)h.scrollIntoView({block:'nearest'});return}
+    if(t.dataset.fb){var on=t.classList.toggle('on');var sib=t.parentNode.querySelectorAll('[data-fb]');sib.forEach(function(x){if(x!==t)x.classList.remove('on')});toast(on?'ขอบคุณสำหรับความเห็น':'ยกเลิกความเห็นแล้ว');return}
+    if(t.dataset.copy){var run=runs[+t.dataset.copy],txt=t.closest('.bub').querySelector('.txt').innerText;
+      try{navigator.clipboard.writeText(txt).then(function(){toast('คัดลอกคำตอบแล้ว')},function(){toast('คัดลอกไม่ได้ ลองเลือกข้อความเอง')})}catch(x){toast('คัดลอกไม่ได้ ลองเลือกข้อความเอง')}}
+  });
+  $('#topics').innerHTML=TOPICS.map(function(t){return '<div class="lab" style="margin-top:8px">'+t[0]+'</div>'+t[1].map(function(x){return '<button type="button" data-q="'+esc(x)+'">'+esc(x)+'</button>'}).join('')}).join('');
+  $('#topics').addEventListener('click',function(e){var b=e.target.closest('button');if(b){app.classList.remove('rail-open');ask(b.dataset.q)}});
+  $('#newchat').onclick=function(){runs=[];cur=-1;welcome();openSrc(false);app.classList.remove('rail-open');$('#dlist').innerHTML='<p style="color:var(--muted);font-size:14px">ถามคำถามแล้วกด "ดูแหล่งอ้างอิง" เพื่อดู chunk ที่ระบบดึงมาและคะแนน</p>';q.focus()};
+  function grow(){q.style.height='auto';q.style.height=Math.min(q.scrollHeight,140)+'px'}
+  q.addEventListener('input',function(){grow();send.disabled=busy||!q.value.trim()});
+  q.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();ask(q.value)}});
+  $('#form').addEventListener('submit',function(e){e.preventDefault();ask(q.value)});
+  welcome();
 })();
 </script>
